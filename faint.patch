@@ -1,0 +1,77 @@
+--- Src/zsh.h
++++ Src/zsh.h
+@@ -2691,6 +2691,10 @@
+ #define TXTNOUNDERLINE	0x0080
+ #define TXTNOFGCOLOUR	0x0100
+ #define TXTNOBGCOLOUR	0x0200
++
++/* Faint/dim attribute (outside the on/off shift scheme). */
++#define TXTCFAINT	0x1000
++#define TXTNOCFAINT	0x2000
+ 
+ #define TXT_ATTR_OFF_MASK  0x03E0
+ /* Bits to shift off right to get on */
+--- Src/prompt.c
++++ Src/prompt.c
+@@ -1607,10 +1607,11 @@
+ };
+ 
+ static const struct highlight highlights[] = {
+-    { "none", 0, TXT_ATTR_ON_MASK },
++    { "none", 0, TXT_ATTR_ON_MASK|TXTCFAINT },
+     { "bold", TXTBOLDFACE, 0 },
+     { "standout", TXTSTANDOUT, 0 },
+     { "underline", TXTUNDERLINE, 0 },
++    { "faint", TXTCFAINT, 0 },
+     { NULL, 0, 0 }
+ };
+ 
+--- Src/Zle/zle_refresh.c
++++ Src/Zle/zle_refresh.c
+@@ -582,7 +582,7 @@
+ clearattributes(void)
+ {
+     if (lastatr) {
+-	settextattributes(TXT_ATTR_OFF_FROM_ON(lastatr));
++	settextattributes(TXT_ATTR_OFF_FROM_ON(lastatr) | ((lastatr & TXTCFAINT) ? TXTNOCFAINT : 0));
+ 	lastatr = 0;
+     }
+ }
+@@ -626,7 +626,7 @@
+ 
+     if (lastatr & ~c->atr) {
+ 	/* Stuff on we don't want, turn it off */
+-	settextattributes(TXT_ATTR_OFF_FROM_ON(lastatr & ~c->atr));
++	settextattributes(TXT_ATTR_OFF_FROM_ON(lastatr & ~c->atr) | ((lastatr & TXTCFAINT) && !(c->atr & TXTCFAINT) ? TXTNOCFAINT : 0));
+ 	lastatr = 0;
+     }
+ 
+@@ -635,14 +635,14 @@
+      * the same attributes.  Be careful in case a different colour
+      * needs setting.
+      */
+-    if ((c->atr & TXT_ATTR_ON_MASK) &&
++    if ((c->atr & (TXT_ATTR_ON_MASK|TXTCFAINT)) &&
+ 	(!curatrp ||
+ 	 ((*curatrp & TXT_ATTR_ON_VALUES_MASK) !=
+ 	  (c->atr & TXT_ATTR_ON_VALUES_MASK)))) {
+ 	/* Record just the control flags we might need to turn off... */
+-	lastatr = c->atr & TXT_ATTR_ON_MASK;
++	lastatr = (c->atr & TXT_ATTR_ON_MASK) | (c->atr & TXTCFAINT);
+ 	/* ...but set including the values for colour attributes */
+-	settextattributes(c->atr & TXT_ATTR_ON_VALUES_MASK);
++	settextattributes((c->atr & TXT_ATTR_ON_VALUES_MASK) | (c->atr & TXTCFAINT));
+     }
+ 
+ #ifdef MULTIBYTE_SUPPORT
+@@ -956,6 +956,10 @@
+ 	tsetcap(TCSTANDOUTBEG, 0);
+     if (txtchangeisset(atr, TXTUNDERLINE))
+ 	tsetcap(TCUNDERLINEBEG, 0);
++    if (txtchangeisset(atr, TXTCFAINT))
++	fputs("\033[2m", shout);
++    if (txtchangeisset(atr, TXTNOCFAINT))
++	fputs("\033[22m", shout);
+     if (txtchangeisset(atr, TXTFGCOLOUR|TXTNOFGCOLOUR))
+ 	set_colour_attribute(atr, COL_SEQ_FG, 0);
+     if (txtchangeisset(atr, TXTBGCOLOUR|TXTNOBGCOLOUR))
