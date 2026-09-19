@@ -54,3 +54,8 @@ line bright, e.g. with `region_highlight=(... faint ...)` and a faint entry in
 
 - zsh 5.9.2 is used deliberately: 5.9 has a SIGCHLD hang bug on current macOS.
 - The patch applies with `patch -p0` from a clean source tree.
+- Install to a **stable** prefix. zsh records the configure prefix as its
+  `module_path`, so a disposable prefix (e.g. under `/tmp`) makes every module
+  — `zsh/parameter`, `zsh/zle`, `zsh/datetime`, ... — unresolvable once that
+  directory is cleared. `build-zsh.sh` refuses `/tmp` (and `/var/tmp`) prefixes;
+  set `ZSH_ALLOW_EPHEMERAL_PREFIX=1` to override.
