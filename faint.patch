@@ -53,10 +53,13 @@
 -    if ((c->atr & TXT_ATTR_ON_MASK) &&
 +    if ((c->atr & (TXT_ATTR_ON_MASK|TXTCFAINT)) &&
  	(!curatrp ||
- 	 ((*curatrp & TXT_ATTR_ON_VALUES_MASK) !=
- 	  (c->atr & TXT_ATTR_ON_VALUES_MASK)))) {
- 	/* Record just the control flags we might need to turn off... */
+-	 ((*curatrp & TXT_ATTR_ON_VALUES_MASK) !=
+-	  (c->atr & TXT_ATTR_ON_VALUES_MASK)))) {
+-	/* Record just the control flags we might need to turn off... */
 -	lastatr = c->atr & TXT_ATTR_ON_MASK;
++	 ((*curatrp & (TXT_ATTR_ON_VALUES_MASK|TXTCFAINT)) !=
++	  (c->atr & (TXT_ATTR_ON_VALUES_MASK|TXTCFAINT))))) {
++	/* Record just the control flags we might need to turn off... */
 +	lastatr = (c->atr & TXT_ATTR_ON_MASK) | (c->atr & TXTCFAINT);
  	/* ...but set including the values for colour attributes */
 -	settextattributes(c->atr & TXT_ATTR_ON_VALUES_MASK);
@@ -64,6 +67,15 @@
      }
  
  #ifdef MULTIBYTE_SUPPORT
+@@ -680,7 +680,7 @@
+ 	 * colour attributes here in case the colour changes to
+ 	 * another non-default one.
+ 	 */
+-	*curatrp = (c->atr & TXT_ATTR_ON_VALUES_MASK) &
++	*curatrp = (c->atr & (TXT_ATTR_ON_VALUES_MASK|TXTCFAINT)) &
+ 	    ~((c->atr & TXT_ATTR_OFF_MASK) >> TXT_ATTR_OFF_ON_SHIFT);
+     }
+ }
 @@ -956,6 +956,10 @@
  	tsetcap(TCSTANDOUTBEG, 0);
      if (txtchangeisset(atr, TXTUNDERLINE))
